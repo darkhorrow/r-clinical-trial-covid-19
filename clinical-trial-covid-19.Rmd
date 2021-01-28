@@ -1,0 +1,94 @@
+---
+title: "Ensayo clínico COVID-19"
+author: "Benearo Semidan Páez"
+date: "28/1/2021"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(xlsx)
+library(dplyr)
+```
+
+## Introducción
+
+Un grupo de investigación de la ULPGC ha realizado un ensayo clínico con una nueva vacuna para la COVID-19. Debido a problemas en la organización de los datos por parte de los equipos sanitarios, se solicita procesar la información del estudio.
+
+```{r echo=FALSE}
+data1 = read.xlsx("data/Prueba_serológica1.xlsx", "Datos_de_pacientes")
+data2 = read.xlsx("data/Prueba_serológica2.xlsx", "Datos_de_pacientes")
+data3 = read.xlsx("data/Prueba_serológica3.xlsx", "Datos_de_pacientes")
+data4 = read.xlsx("data/Prueba_serológica4.xlsx", "Datos_de_pacientes")
+data5 = read.xlsx("data/Prueba_serológica5.xlsx", "Datos_de_pacientes")
+data6 = read.xlsx("data/Prueba_serológica6.xlsx", "Datos_de_pacientes")
+data_merged<-merge(data1, data2, all.x = TRUE, all.y = TRUE)
+data_merged<-merge(data_merged, data3, all.x = TRUE, all.y = TRUE)
+data_merged<-merge(data_merged, data4, all.x = TRUE, all.y = TRUE)
+data_merged<-merge(data_merged, data5, all.x = TRUE, all.y = TRUE)
+data_merged<-merge(data_merged, data6, all.x = TRUE, all.y = TRUE)
+
+names(data_merged)<-c("Pacientes","Sexo","Inoculacion","Edad","Peso","Altura")
+
+data_men_placebo<-filter(data_merged, Sexo == "Male", Inoculacion == 0)
+data_men_vaccine<-filter(data_merged, Sexo == "Male", Inoculacion == 1)
+data_women_placebo<-filter(data_merged, Sexo == "Female", Inoculacion == 0)
+data_women_vaccine<-filter(data_merged, Sexo == "Female", Inoculacion == 1)
+
+
+colMax <- function(data) sapply(data, max, na.rm = TRUE)
+colMin <- function(data) sapply(data, min, na.rm = TRUE)
+
+data_m_p = data_men_placebo[4:length(data_men_placebo)]
+data_m_p$IMC<-data_m_p$Peso / data_m_p$Altura
+
+data_m_v = data_men_vaccine[4:length(data_men_vaccine)]
+data_m_v$IMC<-data_m_v$Peso / data_m_v$Altura
+
+data_f_p = data_women_placebo[4:length(data_women_placebo)]
+data_f_p$IMC<-data_f_p$Peso / data_f_p$Altura
+
+data_f_v = data_women_vaccine[4:length(data_women_vaccine)]
+data_f_v$IMC<-data_f_v$Peso / data_f_v$Altura
+
+
+df1<-data.frame(colMeans(data_m_p), colMax(data_m_p), colMin(data_m_p))
+df2<-data.frame(colMeans(data_m_v), colMax(data_m_v), colMin(data_m_v))
+df3<-data.frame(colMeans(data_f_p), colMax(data_f_p), colMin(data_f_p))
+df4<-data.frame(colMeans(data_f_v), colMax(data_f_v), colMin(data_f_v))
+
+colnames(df1)<-c("Media", "Max", "Min")
+colnames(df2)<-c("Media", "Max", "Min")
+colnames(df3)<-c("Media", "Max", "Min")
+colnames(df4)<-c("Media", "Max", "Min")
+```
+
+
+### Resumen de hombres mediante tratamiento por placebo
+
+```{r}
+df1
+```
+
+### Resumen de hombres tratados con la vacuna
+
+```{r}
+df2
+```
+
+### Resumen de mujeres mediante tratamiento por placebo
+
+```{r}
+df3
+```
+
+### Resumen de mujeres tratadas con la vacuna
+
+```{r}
+df4
+
+```
+
