@@ -19,39 +19,36 @@ library(dplyr)
 Un grupo de investigación de la ULPGC ha realizado un ensayo clínico con una nueva vacuna para la COVID-19. Debido a problemas en la organización de los datos por parte de los equipos sanitarios, se solicita procesar la información del estudio.
 
 ```{r echo=FALSE}
-data1 = read.xlsx("data/Prueba_serológica1.xlsx", "Datos_de_pacientes")
-data2 = read.xlsx("data/Prueba_serológica2.xlsx", "Datos_de_pacientes")
-data3 = read.xlsx("data/Prueba_serológica3.xlsx", "Datos_de_pacientes")
-data4 = read.xlsx("data/Prueba_serológica4.xlsx", "Datos_de_pacientes")
-data5 = read.xlsx("data/Prueba_serológica5.xlsx", "Datos_de_pacientes")
-data6 = read.xlsx("data/Prueba_serológica6.xlsx", "Datos_de_pacientes")
-data_merged<-merge(data1, data2, all.x = TRUE, all.y = TRUE)
-data_merged<-merge(data_merged, data3, all.x = TRUE, all.y = TRUE)
-data_merged<-merge(data_merged, data4, all.x = TRUE, all.y = TRUE)
-data_merged<-merge(data_merged, data5, all.x = TRUE, all.y = TRUE)
-data_merged<-merge(data_merged, data6, all.x = TRUE, all.y = TRUE)
+datos_paciente = read.xlsx("./data/Prueba_serologica_final.xlsx",sheetName = "Datos_de_pacientes")
+datos_paciente[,"IMC"] <- datos_paciente[,"Peso"] / datos_paciente[,"Altura"]
 
-names(data_merged)<-c("Pacientes","Sexo","Inoculacion","Edad","Peso","Altura")
 
-data_men_placebo<-filter(data_merged, Sexo == "Male", Inoculacion == 0)
-data_men_vaccine<-filter(data_merged, Sexo == "Male", Inoculacion == 1)
-data_women_placebo<-filter(data_merged, Sexo == "Female", Inoculacion == 0)
-data_women_vaccine<-filter(data_merged, Sexo == "Female", Inoculacion == 1)
+datos_seralogicos = read.xlsx("./data/Prueba_serologica_final.xlsx", sheetName = "Datos_serologicos")
+
+
+datos = merge(datos_paciente, datos_seralogicos, by="Paciente", all= TRUE) 
+
+names(datos) = c("Pacientes","Sexo","Inoculacion","Edad","Peso","Altura","IMC","0","1","5","10","15","30","60")
+
+data_men_placebo<-filter(datos, Sexo == "Male", Inoculacion == 0)
+data_men_vaccine<-filter(datos, Sexo == "Male", Inoculacion == 1)
+data_women_placebo<-filter(datos, Sexo == "Female", Inoculacion == 0)
+data_women_vaccine<-filter(datos, Sexo == "Female", Inoculacion == 1)
 
 
 colMax <- function(data) sapply(data, max, na.rm = TRUE)
 colMin <- function(data) sapply(data, min, na.rm = TRUE)
 
-data_m_p = data_men_placebo[4:length(data_men_placebo)]
+data_m_p = data_men_placebo[4:7]
 data_m_p$IMC<-data_m_p$Peso / data_m_p$Altura
 
-data_m_v = data_men_vaccine[4:length(data_men_vaccine)]
+data_m_v = data_men_vaccine[4:7]
 data_m_v$IMC<-data_m_v$Peso / data_m_v$Altura
 
-data_f_p = data_women_placebo[4:length(data_women_placebo)]
+data_f_p = data_women_placebo[4:7]
 data_f_p$IMC<-data_f_p$Peso / data_f_p$Altura
 
-data_f_v = data_women_vaccine[4:length(data_women_vaccine)]
+data_f_v = data_women_vaccine[4:7]
 data_f_v$IMC<-data_f_v$Peso / data_f_v$Altura
 
 
@@ -92,3 +89,129 @@ df4
 
 ```
 
+### Total de concentración de anticuerpos
+
+```{r}
+concentracion = matrix(ncol=3)
+
+colnames(concentracion) <- c("Inoculación","Día" ,"Media")
+
+
+sexos <- c("Male","Female")
+dias <-colnames(datos)[8:length(datos)]
+
+
+for( i in 0:1){
+  for(dia in dias){
+    extracto<-filter(datos, Inoculacion == i)
+    concentracion = rbind(concentracion, c(i, dia, mean(extracto[,dia])))
+  }   
+}
+
+data.frame(concentracion)
+```
+
+### Concentración de anticuerpos por sexo
+
+```{r}
+concentracion = matrix(ncol=4)
+
+colnames(concentracion) <- c("Inoculacion","Sexo","Dia" ,"Media")
+
+
+sexos <- c("Male","Female")
+dias <-colnames(datos)[8:length(datos)]
+
+
+for( i in 0:1){
+  for(dia in dias){
+    for(sexo in sexos){
+      extracto<-filter(datos, Sexo == sexo, Inoculacion == i)
+      concentracion = rbind(concentracion, c(i, sexo, dia, mean(extracto[[dia]])))
+    }
+  }   
+}
+
+concentracion = na.omit(concentracion)
+df <- as.data.frame(concentracion)
+df
+
+
+male_placebo<-filter(df, Sexo == "Male" & Inoculacion == 0)
+male_noPlacebo<-filter(df, Sexo == "Male" & Inoculacion == 1)
+female_placebo<-filter(df, Sexo == "Female" & Inoculacion == 0)
+female_noPlacebo<-filter(df, Sexo == "Female" & Inoculacion == 1)
+
+
+plot(male_placebo$Dia,male_placebo$Media, xlab='Dias', ylab='Media', col="red", pch=4)
+par(new=TRUE)
+plot(male_noPlacebo$Dia,male_noPlacebo$Media, xlab='Dias', ylab='Media',col="cyan", pch=4)
+par(new=TRUE)
+plot(female_placebo$Dia,female_placebo$Media, xlab='Dias', ylab='Media',col="green", pch=1)
+par(new=TRUE)
+plot(female_noPlacebo$Dia,female_noPlacebo$Media, xlab='Dias', ylab='Media',col="black", pch=1)
+
+legend("topright", inset=.05, title="Tipo de paciente",
+   c("Hombre placebo","Hombre vacuna","Mujer placebo", "Mujer vacuna"), fill=c("red","cyan","green","black"), pch=c(4,4,1,1),horiz=FALSE)
+```
+
+
+### Valores serológicos a los 15 días según el IMC
+
+```{r echo=FALSE}
+datos = datos[order(datos$IMC),]
+
+
+
+regresion <- lm(`15` ~ IMC, data = datos)
+
+plot(datos$IMC, datos$`15`, xlab='IMC', ylab='Anticuerpos Dia 15')
+
+abline(regresion)
+```
+
+### Valores serológicos a los 15 días según la edad
+
+```{r echo=FALSE}
+datos = datos[order(datos$Edad),]
+
+
+regresion <- lm(`15` ~ Edad, data = datos)
+
+plot(datos$Edad, datos$`15`, xlab='Edad', ylab='Anticuerpos Dia 15')
+
+abline(regresion)
+```
+
+
+### Porcentajes de individuos inmunizados
+
+```{r}
+data_m_p = data_men_placebo[8:length(datos)]
+
+data_m_v = data_men_vaccine[8:length(datos)]
+
+data_f_p = data_women_placebo[8:length(datos)]
+
+data_f_v = data_women_vaccine[8:length(datos)]
+
+dmp = filter(data_m_p, data_m_p$`0` > 10 | data_m_p$`1` > 10 | data_m_p$`5` > 10 | data_m_p$`10` > 10 || data_m_p$`15` > 10 | data_m_p$`30` > 10 | data_m_p$`60` > 10)
+
+dmv = filter(data_m_v, data_m_v$`0` > 10 | data_m_v$`1` > 10 | data_m_v$`5` > 10 | data_m_v$`10` > 10 || data_m_v$`15` > 10 | data_m_v$`30` > 10 | data_m_v$`60` > 10) 
+
+dfp = filter(data_f_p, data_f_p$`0` > 10 | data_f_p$`1` > 10 | data_f_p$`5` > 10 | data_f_p$`10` > 10 || data_f_p$`15` > 10 | data_f_p$`30` > 10 | data_f_p$`60` > 10) 
+
+dfv = filter(data_f_v, data_f_v$`0` > 10 | data_f_v$`1` > 10 | data_f_v$`5` > 10 | data_f_v$`10` > 10 || data_f_v$`15` > 10 | data_f_v$`30` > 10 | data_f_v$`60` > 10) 
+
+
+final<-data.frame((nrow(dmp)/nrow(data_m_p))*100,
+                  (nrow(dmv)/nrow(data_m_v))*100,
+                  (nrow(dfp)/nrow(data_f_p))*100,
+                  (nrow(dfv)/nrow(data_f_v))*100)
+
+
+colnames(final)<-c("% Hombres placebo", "% Hombres vacuna", "% Muejres placebo", "% Mujeres vacuna")
+
+final
+
+```
