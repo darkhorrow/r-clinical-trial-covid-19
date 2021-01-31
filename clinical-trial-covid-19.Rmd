@@ -1,7 +1,7 @@
 ---
 title: "Ensayo clínico COVID-19"
 author: "Benearo Semidan Páez"
-date: "28/1/2021"
+date: "26/1/2021"
 output:
   html_document:
     df_print: paged
@@ -19,21 +19,21 @@ library(dplyr)
 Un grupo de investigación de la ULPGC ha realizado un ensayo clínico con una nueva vacuna para la COVID-19. Debido a problemas en la organización de los datos por parte de los equipos sanitarios, se solicita procesar la información del estudio.
 
 ```{r echo=FALSE}
-datos_paciente = read.xlsx("./data/Prueba_serologica_final.xlsx",sheetName = "Datos_de_pacientes")
-datos_paciente[,"IMC"] <- datos_paciente[,"Peso"] / datos_paciente[,"Altura"]
+pacients_data = read.xlsx("./data/Prueba_serologica_final.xlsx",sheetName = "Datos_de_pacientes")
+pacients_data[,"IMC"] <- pacients_data[,"Peso"] / pacients_data[,"Altura"]
 
 
-datos_seralogicos = read.xlsx("./data/Prueba_serologica_final.xlsx", sheetName = "Datos_serologicos")
+antibodies_data = read.xlsx("./data/Prueba_serologica_final.xlsx", sheetName = "Datos_serologicos")
 
 
-datos = merge(datos_paciente, datos_seralogicos, by="Paciente", all= TRUE) 
+data = merge(pacients_data, antibodies_data, by="Paciente", all= TRUE) 
 
-names(datos) = c("Pacientes","Sexo","Inoculacion","Edad","Peso","Altura","IMC","0","1","5","10","15","30","60")
+names(data) = c("Pacientes","Sexo","Inoculacion","Edad","Peso","Altura","IMC","0","1","5","10","15","30","60")
 
-data_men_placebo<-filter(datos, Sexo == "Male", Inoculacion == 0)
-data_men_vaccine<-filter(datos, Sexo == "Male", Inoculacion == 1)
-data_women_placebo<-filter(datos, Sexo == "Female", Inoculacion == 0)
-data_women_vaccine<-filter(datos, Sexo == "Female", Inoculacion == 1)
+data_men_placebo<-filter(data, Sexo == "Male", Inoculacion == 0)
+data_men_vaccine<-filter(data, Sexo == "Male", Inoculacion == 1)
+data_women_placebo<-filter(data, Sexo == "Female", Inoculacion == 0)
+data_women_vaccine<-filter(data, Sexo == "Female", Inoculacion == 1)
 
 
 colMax <- function(data) sapply(data, max, na.rm = TRUE)
@@ -63,6 +63,7 @@ colnames(df3)<-c("Media", "Max", "Min")
 colnames(df4)<-c("Media", "Max", "Min")
 ```
 
+El estudio fue realizado con personas de ambos sexos, dividiéndose a su vez en grupos de tratamiento con vacuna y tratamiento por placebo. Los datos de dichos grupos de respresentan en las subsiguientes tablas.
 
 ### Resumen de hombres mediante tratamiento por placebo
 
@@ -89,6 +90,9 @@ df4
 
 ```
 
+
+A continuación, se muestra la evolución de los anticuerpos, pudiéndose ver claramente el efecto de la vacuna.
+
 ### Total de concentración de anticuerpos
 
 ```{r}
@@ -98,18 +102,22 @@ colnames(concentracion) <- c("Inoculación","Día" ,"Media")
 
 
 sexos <- c("Male","Female")
-dias <-colnames(datos)[8:length(datos)]
+dias <-colnames(data)[8:length(data)]
 
 
 for( i in 0:1){
   for(dia in dias){
-    extracto<-filter(datos, Inoculacion == i)
+    extracto<-filter(data, Inoculacion == i)
     concentracion = rbind(concentracion, c(i, dia, mean(extracto[,dia])))
   }   
 }
 
+concentracion = na.omit(concentracion)
+
 data.frame(concentracion)
 ```
+
+Por otra parte, es estudia el efecto en la vacuna en ambos sexos. Los resultados indican que la diferencias entre ambos es despreciable y, por lo tanto, tienen efecto similar. 
 
 ### Concentración de anticuerpos por sexo
 
@@ -120,13 +128,13 @@ colnames(concentracion) <- c("Inoculacion","Sexo","Dia" ,"Media")
 
 
 sexos <- c("Male","Female")
-dias <-colnames(datos)[8:length(datos)]
+dias <-colnames(data)[8:length(data)]
 
 
 for( i in 0:1){
   for(dia in dias){
     for(sexo in sexos){
-      extracto<-filter(datos, Sexo == sexo, Inoculacion == i)
+      extracto<-filter(data, Sexo == sexo, Inoculacion == i)
       concentracion = rbind(concentracion, c(i, sexo, dia, mean(extracto[[dia]])))
     }
   }   
@@ -142,58 +150,64 @@ male_noPlacebo<-filter(df, Sexo == "Male" & Inoculacion == 1)
 female_placebo<-filter(df, Sexo == "Female" & Inoculacion == 0)
 female_noPlacebo<-filter(df, Sexo == "Female" & Inoculacion == 1)
 
+y1 = 0.45
+y2 = 16.5
 
-plot(male_placebo$Dia,male_placebo$Media, xlab='Dias', ylab='Media', col="red", pch=4)
+plot(male_placebo$Dia,male_placebo$Media, ylim=range(c(y1,y2)), xlab='Dias', ylab='Media', col="red", pch=4)
 par(new=TRUE)
-plot(male_noPlacebo$Dia,male_noPlacebo$Media, xlab='Dias', ylab='Media',col="cyan", pch=4)
+plot(male_noPlacebo$Dia,male_noPlacebo$Media, ylim=range(c(y1,y2)), axes=FALSE, xlab='', ylab='',col="cyan", pch=4)
 par(new=TRUE)
-plot(female_placebo$Dia,female_placebo$Media, xlab='Dias', ylab='Media',col="green", pch=1)
+plot(female_placebo$Dia,female_placebo$Media, ylim=range(c(y1,y2)), axes=FALSE, xlab='', ylab='',col="green", pch=1)
 par(new=TRUE)
-plot(female_noPlacebo$Dia,female_noPlacebo$Media, xlab='Dias', ylab='Media',col="black", pch=1)
+plot(female_noPlacebo$Dia,female_noPlacebo$Media, ylim=range(c(y1,y2)), axes=FALSE, xlab='', ylab='',col="black", pch=1)
 
 legend("topright", inset=.05, title="Tipo de paciente",
    c("Hombre placebo","Hombre vacuna","Mujer placebo", "Mujer vacuna"), fill=c("red","cyan","green","black"), pch=c(4,4,1,1),horiz=FALSE)
 ```
 
+Otra parte del estudio consiste en visualizar el efecto del IMC en el tratamiento. Para ello, se muestra una gráfica de los anticuerpos presentes en los pacientes en el día 15 con respecto a su IMC.
+
+Los resultados indican que, a mayor IMC, menor es la cantidad de anticuerpos.
 
 ### Valores serológicos a los 15 días según el IMC
 
 ```{r echo=FALSE}
-datos = datos[order(datos$IMC),]
+regresion <- lm(`15` ~ IMC, data = data)
 
-
-
-regresion <- lm(`15` ~ IMC, data = datos)
-
-plot(datos$IMC, datos$`15`, xlab='IMC', ylab='Anticuerpos Dia 15')
+plot(data$IMC, data$`15`, xlab='IMC', ylab='Anticuerpos Dia 15')
 
 abline(regresion)
 ```
+
+Por otra parte, se visualiza el efecto de la edad en el tratamiento. Para ello, se muestra una gráfica de los anticuerpos presentes en los pacientes en el día 15 con respecto a su edad.
+
+Los resultados indican que, a mayor edad, hay ligeramente menos anticuerpos, aunque no parece una cantidad significativa.
+
 
 ### Valores serológicos a los 15 días según la edad
 
 ```{r echo=FALSE}
-datos = datos[order(datos$Edad),]
+regresion <- lm(`15` ~ Edad, data = data)
 
-
-regresion <- lm(`15` ~ Edad, data = datos)
-
-plot(datos$Edad, datos$`15`, xlab='Edad', ylab='Anticuerpos Dia 15')
+plot(data$Edad, data$`15`, xlab='Edad', ylab='Anticuerpos Dia 15')
 
 abline(regresion)
 ```
 
+Por último y con el fin de mostrar la eficiencia de la vacuna, se dispone del porcentaje de pacientes inmunizados al virus según su sexo y grupo de estudio.
+
+Como se puede apreciar, los resultados son muy buenos, superando el 90% de inmunización. También es destacable, una vez más, la efectividad de la vacuna en ambos sexos por igual.
 
 ### Porcentajes de individuos inmunizados
 
 ```{r}
-data_m_p = data_men_placebo[8:length(datos)]
+data_m_p = data_men_placebo[8:length(data)]
 
-data_m_v = data_men_vaccine[8:length(datos)]
+data_m_v = data_men_vaccine[8:length(data)]
 
-data_f_p = data_women_placebo[8:length(datos)]
+data_f_p = data_women_placebo[8:length(data)]
 
-data_f_v = data_women_vaccine[8:length(datos)]
+data_f_v = data_women_vaccine[8:length(data)]
 
 dmp = filter(data_m_p, data_m_p$`0` > 10 | data_m_p$`1` > 10 | data_m_p$`5` > 10 | data_m_p$`10` > 10 || data_m_p$`15` > 10 | data_m_p$`30` > 10 | data_m_p$`60` > 10)
 
